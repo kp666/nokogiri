@@ -21,30 +21,6 @@ anchors:
 
 jobs:
 % RUBIES[:mri].each do |ruby_version|
-  - name: ruby-<%= ruby_version %>-system
-    public: true
-    serial_groups: ["ruby-<%= ruby_version %>"]
-    plan:
-      - get: ci
-      - get: nokogiri
-        trigger: true
-      - task: rake-test
-        config:
-          platform: linux
-          image_resource:
-            type: docker-image
-            source: {repository: "flavorjones/nokogiri-test", tag: "mri-<%= ruby_version %>"}
-          inputs:
-            - name: ci
-            - name: nokogiri
-          params:
-            NOKOGIRI_USE_SYSTEM_LIBRARIES: t
-          run:
-            path: ci/concourse/tasks/rake-test/run.sh
-% if Concourse.production_rubies.include? ruby_version
-        on_failure: *notify_failure_to_irc
-% end
-
   - name: ruby-<%= ruby_version %>-vendored
     public: true
     serial_groups: ["ruby-<%= ruby_version %>"]
@@ -52,7 +28,6 @@ jobs:
       - get: ci
       - get: nokogiri
         trigger: true
-        passed: ["ruby-<%= ruby_version %>-system"]
       - task: rake-test
         config:
           platform: linux
@@ -104,56 +79,6 @@ jobs:
 % Concourse.production_rubies.each do |ruby_version|
           - "ruby-<%= ruby_version %>-valgrind"
 % end
-
-
-  - name: ruby-vanilla-system
-    public: true
-    serial: true
-    plan:
-      - get: ci
-      - get: nokogiri
-        trigger: true
-        passed: ["gate"]
-      - task: rake-test
-        config:
-          platform: linux
-          image_resource:
-            type: docker-image
-            source: {repository: "flavorjones/nokogiri-test", tag: xenial}
-          inputs:
-            - name: ci
-            - name: nokogiri
-          params:
-            NOKOGIRI_USE_SYSTEM_LIBRARIES: t
-            TEST_WITH_APT_REPO_RUBY: t
-          run:
-            path: ci/concourse/tasks/rake-test/run.sh
-        on_failure: *notify_failure_to_irc
-
-
-  - name: ruby-libxmlruby-system
-    public: true
-    serial: true
-    plan:
-      - get: ci
-      - get: nokogiri
-        trigger: true
-        passed: ["gate"]
-      - task: rake-test
-        config:
-          platform: linux
-          image_resource:
-            type: docker-image
-            source: {repository: "flavorjones/nokogiri-test", tag: "mri-<%= Concourse.production_rubies.last %>"}
-          inputs:
-            - name: ci
-            - name: nokogiri
-          params:
-            BUNDLE_GEMFILE: "Gemfile-libxml-ruby"
-            NOKOGIRI_USE_SYSTEM_LIBRARIES: t
-          run:
-            path: ci/concourse/tasks/rake-test/run.sh
-        on_failure: *notify_failure_to_irc
 
 
   - name: ruby-libxmlruby-valgrind
@@ -225,8 +150,6 @@ jobs:
         trigger: true
         version: every
         passed:
-          - ruby-vanilla-system
-          - ruby-libxmlruby-system
           - ruby-libxmlruby-valgrind
           - gem-test
       - put: nokogiri-irc
