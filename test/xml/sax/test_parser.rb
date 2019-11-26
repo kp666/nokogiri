@@ -170,6 +170,11 @@ module Nokogiri
           parser = XML::SAX::Parser.new(Doc.new, "UTF-8")
           assert_equal "UTF-8", parser.encoding
         end
+        def test_parse_io_does_not_override_encoding
+          parser = XML::SAX::Parser.new(Doc.new, "UTF-8")
+          parser.parse_io(StringIO.new("<root/>"), "ASCII")
+          assert_equal "UTF-8", parser.encoding
+        end
 
         def test_errors_set_after_parsing_bad_dom
           doc = Nokogiri::XML("<foo><bar></foo>")
